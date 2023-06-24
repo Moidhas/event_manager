@@ -28,6 +28,36 @@ def letter_generation(result, id)
   File.open(filename, 'w') { |file| file.write result }
 end
 
+def zip_bindings(letter_template, data)
+  data.each do |row|
+    id = row[0]
+    name = row[:first_name]
+    zipcode = clean_zip(row[:zipcode])
+    legislators = legislator_by_zip(zipcode)
+
+    letter_generation(letter_template.result(binding), id)
+  end
+end
+
+def clean_phone_numbers(phone_numbers)
+  phone_numbers = phone_numbers.gsub('-', '')
+  phone_numbers.gsub!('(', '')
+  phone_numbers.gsub!(')', '')
+  phone_numbers.gsub!(' ', '')
+  phone_numbers.gsub!('.', '')
+  phone_numbers[1..] if phone_numbers.length == 11 && phone_numbers.split('')[0] == '1'
+  phone_numbers
+end
+
+def print_valid_phone(data)
+  data.each do |row|
+    phone_numbers = clean_phone_numbers(row[:homephone])
+    next if phone_numbers.length < 10 || phone_numbers.length > 11
+
+    puts "#{row[:first_name]}, #{phone_numbers}"
+  end
+end
+
 data = CSV.open(
   'event_attendees.csv',
   headers: true,
@@ -37,11 +67,4 @@ data = CSV.open(
 form_letter = File.read 'form_letter.erb'
 letter_template = ERB.new form_letter
 
-data.each do |row|
-  id = row[0]
-  name = row[:first_name]
-  zipcode = clean_zip(row[:zipcode])
-  legislators = legislator_by_zip(zipcode)
-
-  letter_generation(letter_template.result(binding), id)
-end
+print_valid_phone(data)
