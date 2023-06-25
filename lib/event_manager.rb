@@ -3,6 +3,9 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'time'
+
+DAY = %w[Sunday Monday Tuesday Wednesday Thursday Friday Saturday].freeze
 
 def clean_zip(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
@@ -58,6 +61,22 @@ def print_valid_phone(data)
   end
 end
 
+def create_time_arr(data)
+  data.map do |row|
+    Time.strptime(row[:regdate], '%m/%d/%y %H:%M').hour
+  end
+end
+
+def busy_hour(data)
+  popular_time = create_time_arr(data).tally.sort_by { |_, v| v }.reverse
+  popular_time.each { |hour, count| puts "Hour: #{hour}, Count: #{count}" }
+end
+
+def busy_day(data)
+  popular_day = data.map { |row| Time.strptime(row[:regdate], '%m/%d/%y %H:%M').wday }.tally.sort_by { |_, v| v}.reverse
+  popular_day.each { |day, count| puts "Day: #{DAY[day]}, Count: #{count}" }
+end
+
 data = CSV.open(
   'event_attendees.csv',
   headers: true,
@@ -67,4 +86,4 @@ data = CSV.open(
 form_letter = File.read 'form_letter.erb'
 letter_template = ERB.new form_letter
 
-print_valid_phone(data)
+busy_day(data)
